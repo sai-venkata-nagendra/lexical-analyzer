@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Lexical Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header h1 {
+            color: #1a2a6c;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #555;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .code-section, .input-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .section-title {
+            color: #1a2a6c;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #fdbb2d;
+        }
+        
+        .code-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            line-height: 1.4;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .code-line {
+            display: flex;
+            margin-bottom: 2px;
+        }
+        
+        .line-number {
+            width: 40px;
+            text-align: right;
+            padding-right: 10px;
+            color: #6e7681;
+            user-select: none;
+        }
+        
+        .code-content {
+            flex: 1;
+        }
+        
+        .keyword {
+            color: #569cd6;
+        }
+        
+        .string {
+            color: #ce9178;
+        }
+        
+        .comment {
+            color: #6a9955;
+        }
+        
+        .function {
+            color: #dcdcaa;
+        }
+        
+        .preprocessor {
+            color: #c586c0;
+        }
+        
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            font-size: 16px;
+        }
+        
+        button {
+            background: #1a2a6c;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #0d1a4d;
+        }
+        
+        .output-container {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            overflow-y: auto;
+            max-height: 300px;
+        }
+        
+        .output-line {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .operator {
+            background-color: #e8f4fd;
+            color: #1a73e8;
+        }
+        
+        .keyword-output {
+            background-color: #e6f4ea;
+            color: #137333;
+        }
+        
+        .integer {
+            background-color: #fce8e6;
+            color: #c5221f;
+        }
+        
+        .real-number {
+            background-color: #fff8e1;
+            color: #b06000;
+        }
+        
+        .identifier {
+            background-color: #f3e8fd;
+            color: #9334e6;
+        }
+        
+        .invalid {
+            background-color: #fce8e6;
+            color: #c5221f;
+            text-decoration: line-through;
+        }
+        
+        .footer {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>C Lexical Analyzer</h1>
+            <p>This program demonstrates a lexical analyzer in C that identifies keywords, identifiers, integers, real numbers, and operators in a given input string.</p>
+        </div>
+        
+        <div class="code-section">
+            <h2 class="section-title">Source Code</h2>
+            <div class="code-container" id="code-container">
+                <!-- Code will be inserted here by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="input-section">
+            <h2 class="section-title">Test the Analyzer</h2>
+            <div class="input-container">
+                <textarea id="input-code" placeholder="Enter code to analyze (e.g., int a = b + 1c;)">int a = b + 1c;</textarea>
+                <button id="analyze-btn">Analyze Code</button>
+                
+                <h3 class="section-title">Output</h3>
+                <div class="output-container" id="output-container">
+                    <div class="output-line">Output will appear here after analysis.</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>This lexical analyzer demonstrates tokenization of C code. Try entering different code snippets to see how it works!</p>
+        </div>
+    </div>
+
+    <script>
+        // C code to display
+        const cCode = `#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+// Returns 'true' if the character is a DELIMITER.
+bool isDelimiter(char ch)
+{
+    if (ch == ' ' || ch == '+' || ch == '-' || ch == '*' || 
+        ch == '/' || ch == ',' || ch == ';' || ch == '>' || 
+        ch == '<' || ch == '=' || ch == '(' || ch == ')' || 
+        ch == '[' || ch == ']' || ch == '{' || ch == '}')
+        return (true);
+    return (false);
+}
+
+// Returns 'true' if the character is an OPERATOR.
+bool isOperator(char ch)
+{
+    if (ch == '+' || ch == '-' || ch == '*' || 
+        ch == '/' || ch == '>' || ch == '<' || ch == '=')
+        return (true);
+    return (false);
+}
+
+// Returns 'true' if the string is a VALID IDENTIFIER.
+bool validIdentifier(char* str)
+{
+    if (str[0] == '0' || str[0] == '1' || str[0] == '2' ||
+        str[0] == '3' || str[0] == '4' || str[0] == '5' ||
+        str[0] == '6' || str[0] == '7' || str[0] == '8' || 
+        str[0] == '9' || isDelimiter(str[0]) == true)
+        return (false);
+    return (true);
+}
+
+// Returns 'true' if the string is a KEYWORD.
+bool isKeyword(char* str)
+{
+    if (!strcmp(str, "if") || !strcmp(str, "else") ||
+        !strcmp(str, "while") || !strcmp(str, "do") ||
+        !strcmp(str, "break") || !strcmp(str, "continue") || 
+        !strcmp(str, "int") || !strcmp(str, "double") || 
+        !strcmp(str, "float") || !strcmp(str, "return") || 
+        !strcmp(str, "char") || !strcmp(str, "case") || 
+        !strcmp(str, "sizeof") || !strcmp(str, "long") ||
+        !strcmp(str, "short") || !strcmp(str, "typedef") ||
+        !strcmp(str, "switch") || !strcmp(str, "unsigned") ||
+        !strcmp(str, "void") || !strcmp(str, "static") ||
+        !strcmp(str, "struct") || !strcmp(str, "goto"))
+        return (true);
+    return (false);
+}
+
+// Returns 'true' if the string is an INTEGER.
+bool isInteger(char* str)
+{
+    int i, len = strlen(str);
+
+    if (len == 0)
+        return (false);
+    for (i = 0; i < len; i++) {
+        if ((str[i] != '0' && str[i] != '1' && str[i] != '2' &&
+             str[i] != '3' && str[i] != '4' && str[i] != '5' &&
+             str[i] != '6' && str[i] != '7' && str[i] != '8' &&
+             str[i] != '9') || (str[i] == '-' && i > 0))
+            return (false);
+    }
+    return (true);
+}
+
+// Returns 'true' if the string is a REAL NUMBER.
+bool isRealNumber(char* str)
+{
+    int i, len = strlen(str);
+    bool hasDecimal = false;
+
+    if (len == 0)
+        return (false);
+    
+    for (i = 0; i < len; i++) {
+        if ((str[i] != '0' && str[i] != '1' && str[i] != '2' &&
+             str[i] != '3' && str[i] != '4' && str[i] != '5' &&
+             str[i] != '6' && str[i] != '7' && str[i] != '8' &&
+             str[i] != '9' && str[i] != '.') ||
+            (str[i] == '-' && i > 0))
+            return (false);
+
+        if (str[i] == '.')
+            hasDecimal = true;
+    }
+    return (hasDecimal);
+}
+
+// Extracts the SUBSTRING.
+char* subString(char* str, int left, int right)
+{
+    int i;
+    char* subStr = (char*)malloc(sizeof(char) * (right - left + 2));
+    
+    for (i = left; i <= right; i++)
+        subStr[i - left] = str[i];
+    
+    subStr[right - left + 1] = '\0';
+    return (subStr);
+}
+
+// Parsing the input STRING.
+void parse(char* str)
+{
+    int left = 0, right = 0;
+    int len = strlen(str);
+
+    while (right <= len && left <= right) {
+        if (isDelimiter(str[right]) == false)
+            right++;
+
+        if (isDelimiter(str[right]) == true && left == right) {
+            if (isOperator(str[right]) == true)
+                printf("'%c' IS AN OPERATOR\\n", str[right]);
+
+            right++;
+            left = right;
+        } else if ((isDelimiter(str[right]) == true && left != right) ||
+                   (right == len && left != right)) {
+            char* subStr = subString(str, left, right - 1);
+
+            if (isKeyword(subStr) == true)
+                printf("'%s' IS A KEYWORD\\n", subStr);
+            else if (isInteger(subStr) == true)
+                printf("'%s' IS AN INTEGER\\n", subStr);
+            else if (isRealNumber(subStr) == true)
+                printf("'%s' IS A REAL NUMBER\\n", subStr);
+            else if (validIdentifier(subStr) == true &&
+                     isDelimiter(str[right - 1]) == false)
+                printf("'%s' IS A VALID IDENTIFIER\\n", subStr);
+            else if (validIdentifier(subStr) == false &&
+                     isDelimiter(str[right - 1]) == false)
+                printf("'%s' IS NOT A VALID IDENTIFIER\\n", subStr);
+            
+            free(subStr); // Don't forget to free the allocated memory
+            left = right;
+        }
+    }
+}
+
+// DRIVER FUNCTION
+int main()
+{
+    // maximum length of string is 100 here
+    char str[100] = "int a = b + 1c; ";
+    parse(str); // calling the parse function
+
+    return (0);
+}`;
+
+        // Function to highlight C code syntax
+        function highlightCode(code) {
+            const lines = code.split('\n');
+            let highlightedCode = '';
+            
+            lines.forEach((line, index) => {
+                let highlightedLine = line;
+                
+                // Highlight preprocessor directives
+                highlightedLine = highlightedLine.replace(/#include\s*<[^>]+>|#include\s*"[^"]+"/g, 
+                    match => `<span class="preprocessor">${match}</span>`);
+                
+                // Highlight keywords
+                const keywords = ['bool', 'char', 'int', 'double', 'float', 'void', 'if', 'else', 
+                                 'while', 'do', 'for', 'return', 'break', 'continue', 'switch', 
+                                 'case', 'default', 'sizeof', 'struct', 'typedef', 'static'];
+                
+                keywords.forEach(keyword => {
+                    const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+                    highlightedLine = highlightedLine.replace(regex, 
+                        `<span class="keyword">${keyword}</span>`);
+                });
+                
+                // Highlight function names
+                highlightedLine = highlightedLine.replace(/(\w+)\s*\(/g, 
+                    (match, funcName) => {
+                        if (!keywords.includes(funcName)) {
+                            return `<span class="function">${funcName}</span>(`;
+                        }
+                        return match;
+                    });
+                
+                // Highlight strings
+                highlightedLine = highlightedLine.replace(/"[^"]*"/g, 
+                    match => `<span class="string">${match}</span>`);
+                
+                // Highlight comments
+                highlightedLine = highlightedLine.replace(/\/\/.*$/g, 
+                    match => `<span class="comment">${match}</span>`);
+                
+                highlightedCode += `<div class="code-line">
+                    <div class="line-number">${index + 1}</div>
+                    <div class="code-content">${highlightedLine}</div>
+                </div>`;
+            });
+            
+            return highlightedCode;
+        }
+
+        // Function to simulate the lexical analyzer
+        function analyzeCode(input) {
+            // This is a simplified simulation of the C code's functionality
+            // In a real implementation, you would need to port the C code to JavaScript
+            
+            const tokens = [];
+            const lines = input.split('\n');
+            
+            lines.forEach(line => {
+                // Simple tokenization for demonstration
+                const words = line.split(/(\s+|[,;(){}[\]+\-*/=<>])/).filter(token => token.trim() !== '');
+                
+                words.forEach(word => {
+                    if (word.trim() === '') return;
+                    
+                    // Check for operators
+                    if (['+', '-', '*', '/', '>', '<', '='].includes(word)) {
+                        tokens.push({ type: 'operator', value: word });
+                        return;
+                    }
+                    
+                    // Check for delimiters
+                    if ([',', ';', '(', ')', '{', '}', '[', ']'].includes(word)) {
+                        return; // Skip delimiters in output for simplicity
+                    }
+                    
+                    // Check for keywords
+                    const keywords = ['if', 'else', 'while', 'do', 'break', 'continue', 
+                                     'int', 'double', 'float', 'return', 'char', 'case', 
+                                     'sizeof', 'long', 'short', 'typedef', 'switch', 
+                                     'unsigned', 'void', 'static', 'struct', 'goto'];
+                    
+                    if (keywords.includes(word)) {
+                        tokens.push({ type: 'keyword', value: word });
+                        return;
+                    }
+                    
+                    // Check for integers
+                    if (/^-?\d+$/.test(word)) {
+                        tokens.push({ type: 'integer', value: word });
+                        return;
+                    }
+                    
+                    // Check for real numbers
+                    if (/^-?\d+\.\d+$/.test(word)) {
+                        tokens.push({ type: 'real-number', value: word });
+                        return;
+                    }
+                    
+                    // Check for valid identifiers
+                    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(word)) {
+                        tokens.push({ type: 'identifier', value: word });
+                        return;
+                    }
+                    
+                    // Invalid identifier
+                    tokens.push({ type: 'invalid', value: word });
+                });
+            });
+            
+            return tokens;
+        }
+
+        // Function to display analysis results
+        function displayResults(tokens) {
+            const outputContainer = document.getElementById('output-container');
+            outputContainer.innerHTML = '';
+            
+            if (tokens.length === 0) {
+                outputContainer.innerHTML = '<div class="output-line">No tokens found.</div>';
+                return;
+            }
+            
+            tokens.forEach(token => {
+                const div = document.createElement('div');
+                div.className = `output-line ${token.type}`;
+                
+                let displayText = '';
+                switch(token.type) {
+                    case 'operator':
+                        displayText = `'${token.value}' IS AN OPERATOR`;
+                        break;
+                    case 'keyword':
+                        displayText = `'${token.value}' IS A KEYWORD`;
+                        break;
+                    case 'integer':
+                        displayText = `'${token.value}' IS AN INTEGER`;
+                        break;
+                    case 'real-number':
+                        displayText = `'${token.value}' IS A REAL NUMBER`;
+                        break;
+                    case 'identifier':
+                        displayText = `'${token.value}' IS A VALID IDENTIFIER`;
+                        break;
+                    case 'invalid':
+                        displayText = `'${token.value}' IS NOT A VALID IDENTIFIER`;
+                        break;
+                }
+                
+                div.textContent = displayText;
+                outputContainer.appendChild(div);
+            });
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Display the highlighted code
+            const codeContainer = document.getElementById('code-container');
+            codeContainer.innerHTML = highlightCode(cCode);
+            
+            // Set up the analyze button
+            document.getElementById('analyze-btn').addEventListener('click', function() {
+                const inputCode = document.getElementById('input-code').value;
+                const tokens = analyzeCode(inputCode);
+                displayResults(tokens);
+            });
+            
+            // Analyze the default code on page load
+            const defaultCode = document.getElementById('input-code').value;
+            const tokens = analyzeCode(defaultCode);
+            displayResults(tokens);
+        });
+    </script>
+</body>
+</html>
